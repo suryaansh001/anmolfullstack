@@ -7,10 +7,9 @@ import {
   VERSIONS,
   WRITERS,
   WRITING_ACTIVITY,
-  WRITINGS,
   type Writing,
 } from "@/lib/demo-data";
-import { apiClient } from "@/lib/api";
+import { apiClient, type Content } from "@/lib/api";
 
 type AuthUser = {
   id: string;
@@ -78,12 +77,49 @@ const PlatformContext = createContext<PlatformContextValue | null>(null);
 
 export function PlatformProvider({ children }: { children: React.ReactNode }) {
   const [persistedState, setPersistedState] = useState<PersistedState>(defaultPersisted);
+  const [mongoWritings, setMongoWritings] = useState<Writing[]>([]);
   const { ready, user, bookmarks, settings, selectedSidebarPath, sidebarCollapsed } = persistedState;
 
   // Apply theme immediately on mount to prevent FOUC (flash of unstyled content)
   if (typeof document !== "undefined") {
     document.documentElement.classList.toggle("dark", settings.theme === "midnight");
   }
+
+  // Fetch writings from MongoDB
+  useEffect(() => {
+    const fetchWritings = async () => {
+      try {
+        const response = await apiClient.getContentByLanguage('english');
+        if (response.data && Array.isArray(response.data)) {
+          const categoryMap: Record<string, any> = {
+            poem: 'Poetry',
+            story: 'Stories',
+            lyrics: 'Lyrics',
+            screenplay: 'Screenplays',
+          };
+          const writings = response.data.map((content: Content): Writing => ({
+            id: content._id,
+            title: content.title,
+            category: categoryMap[content.contentType] || 'Poetry',
+            language: content.language as any,
+            genre: content.genre,
+            mood: "Tender",
+            rating: content.ratingCount > 0 ? content.ratingSum / content.ratingCount : 0,
+            bookmarks: content.bookmarkCount,
+            authorId: content.authorId,
+            excerpt: content.quillDelta?.ops?.[0]?.insert?.substring(0, 100) || "",
+            body: content.quillDelta?.ops?.map((op: any) => op.insert || "").join("") || "",
+            publishedAt: content.createdAt,
+          }));
+          setMongoWritings(writings);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch writings from MongoDB, falling back to demo data', error);
+      }
+    };
+
+    fetchWritings();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -128,7 +164,7 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ready,
       user,
-      writings: WRITINGS,
+      writings: mongoWritings.length > 0 ? mongoWritings : [],
       bookmarks,
       settings,
       selectedSidebarPath,
