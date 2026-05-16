@@ -10,6 +10,7 @@ import {
   Feather,
   FileClock,
   FileText,
+  Globe,
   Home,
   Library,
   LogOut,
@@ -21,6 +22,7 @@ import {
   Waves,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { usePlatform } from "@/context/platform-context";
 
@@ -31,19 +33,19 @@ type SidebarItem = {
 };
 
 const SIDEBAR_ITEMS: SidebarItem[] = [
-  { to: "/dashboard", label: "Home", icon: Home },
-  { to: "/explore", label: "Explore", icon: Compass },
-  { to: "/poetry", label: "Poetry", icon: Feather },
-  { to: "/lyrics", label: "Lyrics", icon: Waves },
-  { to: "/stories", label: "Stories", icon: BookOpen },
-  { to: "/screenplays", label: "Screenplays", icon: Clapperboard },
-  { to: "/library", label: "Library", icon: Library },
-  { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
-  { to: "/drafts", label: "Drafts", icon: FileText },
-  { to: "/version-history", label: "Version History", icon: FileClock },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/profile", label: "Profile", icon: UserRound },
-  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/dashboard", label: "common.home", icon: Home },
+  { to: "/explore", label: "common.explore", icon: Compass },
+  { to: "/poetry", label: "common.poetry", icon: Feather },
+  { to: "/lyrics", label: "common.lyrics", icon: Waves },
+  { to: "/stories", label: "common.stories", icon: BookOpen },
+  { to: "/screenplays", label: "common.screenplays", icon: Clapperboard },
+  { to: "/library", label: "common.library", icon: Library },
+  { to: "/bookmarks", label: "common.bookmarks", icon: Bookmark },
+  { to: "/drafts", label: "common.drafts", icon: FileText },
+  { to: "/version-history", label: "common.versionHistory", icon: FileClock },
+  { to: "/analytics", label: "common.analytics", icon: BarChart3 },
+  { to: "/profile", label: "common.profile", icon: UserRound },
+  { to: "/settings", label: "common.settings", icon: Settings },
 ];
 
 export function PlatformShell({
@@ -56,6 +58,7 @@ export function PlatformShell({
   children: React.ReactNode;
 }) {
   const location = useLocation();
+  const { t, i18n } = useTranslation();
   const {
     user,
     ready,
@@ -68,9 +71,9 @@ export function PlatformShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const greeting = useMemo(() => {
-    if (!user) return "Welcome to AKSHAR";
-    return `Welcome back, ${user.name.split(" ")[0]}`;
-  }, [user]);
+    if (!user) return t('common.welcome');
+    return `${t('common.welcomeBack')}, ${user.name.split(" ")[0]}`;
+  }, [user, t]);
 
   const activePath = location.pathname;
 
@@ -270,8 +273,23 @@ export function PlatformShell({
               to="/editor"
               className="hidden sm:inline-flex h-9 px-4 rounded-full bg-gradient-ink text-primary-foreground text-xs uppercase tracking-[0.2em] items-center"
             >
-              <PenLine className="w-3.5 h-3.5 mr-2" /> Write
+              <PenLine className="w-3.5 h-3.5 mr-2" /> {t('common.write')}
             </Link>
+            <select
+              value={i18n.language}
+              onChange={(e) => {
+                console.log('[Header] Language changed to:', e.target.value);
+                i18n.changeLanguage(e.target.value);
+              }}
+              className="h-9 px-3 rounded-full border border-foreground/20 bg-background/80 text-sm text-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+              title={t('common.language')}
+            >
+              <option value="en">English</option>
+              <option value="hi">हिंदी</option>
+              <option value="ta">தமிழ்</option>
+              <option value="bn">বাংলা</option>
+              <option value="gu">ગુજરાતી</option>
+            </select>
             <img
               src={user.avatar}
               alt={user.name}
@@ -318,6 +336,7 @@ function SidebarButton({
   selectedSidebarPath: string;
   collapsed: boolean;
 }) {
+  const { t } = useTranslation();
   const Icon = item.icon;
   const selected = selectedSidebarPath === item.to;
 
@@ -353,7 +372,7 @@ function SidebarButton({
         transition={{ duration: 0.85, repeat: Infinity, repeatDelay: 0.9 }}
       />
       <Icon className="w-4 h-4 shrink-0" />
-      {!collapsed && <span className="text-sm">{item.label}</span>}
+      {!collapsed && <span className="text-sm">{t(item.label)}</span>}
       {selected && !collapsed && !active && (
         <BookMarked className="w-3.5 h-3.5 ml-auto text-foreground/40" />
       )}

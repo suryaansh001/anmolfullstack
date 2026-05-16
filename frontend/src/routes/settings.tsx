@@ -2,6 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PlatformShell } from "@/components/platform/platform-shell";
 import { Switch } from "@/components/ui/switch";
 import { usePlatform } from "@/context/platform-context";
+import { useTranslation } from "react-i18next";
+
+const LANGUAGE_MAP: Record<string, string> = {
+  Hindi: "hi",
+  Tamil: "ta",
+  Bengali: "bn",
+  English: "en",
+  Gujarati: "gu",
+};
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -9,6 +18,15 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const { settings, updateSettings } = usePlatform();
+  const { i18n } = useTranslation();
+
+  const handleLanguageChange = (lang: string) => {
+    console.log('[Settings] Language changing to:', lang);
+    updateSettings({ language: lang });
+    const i18nCode = LANGUAGE_MAP[lang] || "en";
+    console.log('[Settings] i18n changing to:', i18nCode);
+    i18n.changeLanguage(i18nCode);
+  };
 
   return (
     <PlatformShell
@@ -20,7 +38,7 @@ function SettingsPage() {
           <SettingRow label="Language preference">
             <select
               value={settings.language}
-              onChange={(event) => updateSettings({ language: event.target.value })}
+              onChange={(e) => handleLanguageChange(e.target.value)}
               className="rounded-lg border border-foreground/15 bg-background/80 px-3 py-2"
             >
               {["Hindi", "Tamil", "Bengali", "English", "Gujarati"].map((language) => (

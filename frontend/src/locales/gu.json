@@ -1,0 +1,20 @@
+{
+  "common": { "akshar": "અક્ષર" },
+  "nav": {
+    "dashboard": "ડેશબોર્ડ",
+    "poetry": "કવિતા",
+    "stories": "વાર્તાઓ",
+    "lyrics": "ગીતના શબ્દો",
+    "editor": "સંપાદક",
+    "discover": "શોધો"
+  },
+  "auth": {
+    "login": "સાઇન ઇન કરો",
+    "signup": "સાઇન અપ કરો",
+    "email": "ઇમેલ",
+    "password": "પાસવર્ડ",
+    "name": "સંપૂર્ણ નામ"
+  },
+  "editor": { "title": "સંપાદક" },
+  "errors": { "unauthorized": "અધિકૃત નથી. કૃપયા સાઇન ઇન કરો." }
+}

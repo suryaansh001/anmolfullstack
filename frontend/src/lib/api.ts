@@ -1,7 +1,22 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const REQUEST_TIMEOUT = 10000; // 10 seconds
 
 interface RequestOptions extends RequestInit {
   headers?: Record<string, string>;
+}
+
+// AbortController timeout helper
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ms);
+  return promise
+    .finally(() => clearTimeout(timeout))
+    .catch((err) => {
+      if (err.name === 'AbortError') {
+        throw new Error(`Request timeout after ${ms}ms`);
+      }
+      throw err;
+    });
 }
 
 interface QuillDelta {
@@ -74,7 +89,9 @@ class APIClient {
     options: RequestOptions = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, {
+    console.log('[API] Request to:', url, 'method:', options.method || 'GET');
+
+    const fetchPromise = fetch(url, {
       ...options,
       headers: {
         ...this.getHeaders(),
@@ -82,12 +99,20 @@ class APIClient {
       },
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || `HTTP ${response.status}`);
-    }
+    try {
+      const response = await withTimeout(fetchPromise, REQUEST_TIMEOUT);
+      console.log('[API] Response from:', endpoint, 'status:', response.status);
 
-    return response.json() as Promise<T>;
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      return response.json() as Promise<T>;
+    } catch (err) {
+      console.error('[API] Error:', endpoint, err);
+      throw err;
+    }
   }
 
   async get<T>(endpoint: string): Promise<T> {

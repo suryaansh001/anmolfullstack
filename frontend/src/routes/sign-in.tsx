@@ -11,12 +11,47 @@ export const Route = createFileRoute("/sign-in")({
 function SignInPage() {
   const navigate = useNavigate();
   const { signIn, continueAsGuest, user } = usePlatform();
-  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState<"signin" | "guest" | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (user) navigate({ to: "/dashboard" });
   }, [navigate, user]);
+
+  const handleSignIn = async () => {
+    console.log('[SignIn] handleSignIn called', email);
+    if (!email || !password) {
+      setError("Please enter email and password");
+      return;
+    }
+    try {
+      setLoading("signin");
+      setError("");
+      console.log('[SignIn] Calling signIn...');
+      await signIn(email, password);
+      console.log('[SignIn] signIn returned, navigating...');
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      console.error('[SignIn] Error:', err);
+      setError(err instanceof Error ? err.message : "Sign in failed");
+    } finally {
+      setLoading(null); // Always reset loading state
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    try {
+      setLoading("guest");
+      setError("");
+      await continueAsGuest();
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Guest login failed");
+      setLoading(null);
+    }
+  };
 
   return (
     <main className="relative min-h-screen grid place-items-center overflow-hidden px-5 py-16 bg-gradient-cinematic">
@@ -50,22 +85,42 @@ function SignInPage() {
         </p>
 
         <div className="mt-8 space-y-4">
-          <label className="block text-xs uppercase tracking-[0.22em] text-foreground/55">
-            Name
-          </label>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Aarav Mehta"
-            className="w-full rounded-xl border border-foreground/15 bg-background/70 px-4 py-3 outline-none focus:border-foreground/40"
-          />
+          <div>
+            <label className="block text-xs uppercase tracking-[0.22em] text-foreground/55 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="aarav@example.com"
+              className="w-full rounded-xl border border-foreground/15 bg-background/70 px-4 py-3 outline-none focus:border-foreground/40"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase tracking-[0.22em] text-foreground/55 mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="••••••••"
+              className="w-full rounded-xl border border-foreground/15 bg-background/70 px-4 py-3 outline-none focus:border-foreground/40"
+            />
+          </div>
+
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/20 text-red-300 text-sm">
+              {error}
+            </div>
+          )}
+
           <button
-            onClick={async () => {
-              setLoading("signin");
-              await signIn(name);
-              navigate({ to: "/dashboard" });
-            }}
-            className="w-full h-11 rounded-full bg-gradient-ink text-primary-foreground uppercase tracking-[0.2em] text-xs inline-flex items-center justify-center gap-2"
+            onClick={handleSignIn}
+            disabled={loading !== null}
+            className="w-full h-11 rounded-full bg-gradient-ink text-primary-foreground uppercase tracking-[0.2em] text-xs inline-flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading === "signin" ? (
               <LoaderCircle className="w-4 h-4 animate-spin" />
@@ -74,12 +129,9 @@ function SignInPage() {
             )}
           </button>
           <button
-            onClick={async () => {
-              setLoading("guest");
-              await continueAsGuest();
-              navigate({ to: "/dashboard" });
-            }}
-            className="w-full h-11 rounded-full border border-foreground/20 uppercase tracking-[0.2em] text-xs hover:bg-foreground hover:text-background transition-colors inline-flex items-center justify-center gap-2"
+            onClick={handleGuestLogin}
+            disabled={loading !== null}
+            className="w-full h-11 rounded-full border border-foreground/20 uppercase tracking-[0.2em] text-xs hover:bg-foreground hover:text-background transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading === "guest" ? (
               <LoaderCircle className="w-4 h-4 animate-spin" />

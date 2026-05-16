@@ -10,9 +10,11 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
+import { I18nextProvider } from "react-i18next";
 
 import appCss from "../styles.css?url";
 import { PlatformProvider } from "@/context/platform-context";
+import i18n from "@/lib/i18n"; // Initialize i18n
 
 function NotFoundComponent() {
   return (
@@ -136,20 +138,22 @@ function RootComponent() {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PlatformProvider>
-        <Suspense fallback={loadingFallback}>
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-            >
-              <Outlet />
-            </motion.div>
-        </Suspense>
-      </PlatformProvider>
-    </QueryClientProvider>
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={queryClient}>
+        <PlatformProvider>
+          <Suspense fallback={loadingFallback}>
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+              >
+                <Outlet />
+              </motion.div>
+          </Suspense>
+        </PlatformProvider>
+      </QueryClientProvider>
+    </I18nextProvider>
   );
 }
 

@@ -9,7 +9,21 @@ import {
   WRITING_ACTIVITY,
   type Writing,
 } from "@/lib/demo-data";
-import { apiClient, type Content } from "@/lib/api";
+import { apiClient } from "@/lib/api";
+
+interface Content {
+  _id: string;
+  title: string;
+  genre: string;
+  language: string;
+  contentType: 'lyrics' | 'story' | 'poem' | 'screenplay';
+  quillDelta: { ops: Array<{ insert?: string; attributes?: Record<string, unknown> }> };
+  authorId: string;
+  bookmarkCount: number;
+  ratingSum: number;
+  ratingCount: number;
+  createdAt: string;
+}
 
 type AuthUser = {
   id: string;
@@ -78,7 +92,12 @@ const PlatformContext = createContext<PlatformContextValue | null>(null);
 export function PlatformProvider({ children }: { children: React.ReactNode }) {
   const [persistedState, setPersistedState] = useState<PersistedState>(defaultPersisted);
   const [mongoWritings, setMongoWritings] = useState<Writing[]>([]);
-  const { ready, user, bookmarks, settings, selectedSidebarPath, sidebarCollapsed } = persistedState;
+  const [mongoLoading, setMongoLoading] = useState(true);
+  const { ready: localStorageReady, user, bookmarks, settings, selectedSidebarPath, sidebarCollapsed } = persistedState;
+
+  // ready should consider both localStorage and MongoDB loading
+  const ready = localStorageReady && !mongoLoading;
+  console.log('[PlatformContext] render, localStorageReady:', localStorageReady, 'mongoLoading:', mongoLoading, 'ready:', ready, 'writings:', mongoWritings.length);
 
   // Apply theme immediately on mount to prevent FOUC (flash of unstyled content)
   if (typeof document !== "undefined") {
@@ -87,10 +106,13 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch writings from MongoDB
   useEffect(() => {
+    console.log('[PlatformContext] Fetching writings from MongoDB...');
     const fetchWritings = async () => {
       try {
+        console.log('[PlatformContext] API call starting...');
         const response = await apiClient.getContentByLanguage('english');
-        if (response.data && Array.isArray(response.data)) {
+        console.log('[PlatformContext] API response:', response);
+        if (response && response.data && Array.isArray(response.data)) {
           const categoryMap: Record<string, any> = {
             poem: 'Poetry',
             story: 'Stories',
@@ -112,9 +134,14 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
             publishedAt: content.createdAt,
           }));
           setMongoWritings(writings);
+          console.log('[PlatformContext] MongoDB writings loaded:', writings.length);
         }
       } catch (error) {
-        console.warn('Failed to fetch writings from MongoDB, falling back to demo data', error);
+        console.error('[PlatformContext] Failed to fetch writings from MongoDB:', error);
+        setMongoWritings([]);
+      } finally {
+        setMongoLoading(false);
+        console.log('[PlatformContext] MongoDB loading complete');
       }
     };
 
@@ -170,8 +197,10 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
       selectedSidebarPath,
       sidebarCollapsed,
       signIn: async (email, password) => {
+        console.log('[PlatformContext] signIn called with:', email);
         try {
           const response = await apiClient.signIn(email, password);
+          console.log('[PlatformContext] signIn success:', response);
           setPersistedState((prev) => ({
             ...prev,
             user: {
@@ -182,9 +211,9 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
             },
           }));
         } catch (error) {
-          console.error('Sign in failed:', error);
-          // Fallback to demo mode
-          await wait(500);
+          console.error('[PlatformContext] Sign in failed:', error);
+          // Fallback to demo mode if API fails
+          console.log('[PlatformContext] Falling back to demo mode');
           setPersistedState((prev) => ({
             ...prev,
             user: {
@@ -197,8 +226,10 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
         }
       },
       signUp: async (email, password, name) => {
+        console.log('[PlatformContext] signUp called with:', email, name);
         try {
           const response = await apiClient.signUp(email, name || "New Writer", password);
+          console.log('[PlatformContext] signUp success:', response);
           setPersistedState((prev) => ({
             ...prev,
             user: {
@@ -209,14 +240,14 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
             },
           }));
         } catch (error) {
-          console.error('Sign up failed:', error);
-          // Fallback to demo mode
-          await wait(700);
+          console.error('[PlatformContext] Sign up failed:', error);
+          // Fallback to demo mode if API fails
+          console.log('[PlatformContext] Falling back to demo mode');
           setPersistedState((prev) => ({
             ...prev,
             user: {
               id: "u-new",
-              name: name || "New Writer",
+              name: name || email.split("@")[0] || "New Writer",
               avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=240&q=80",
               mode: "member",
             },
@@ -224,7 +255,6 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
         }
       },
       continueAsGuest: async () => {
-        await wait(350);
         setPersistedState((prev) => ({
           ...prev,
           user: {

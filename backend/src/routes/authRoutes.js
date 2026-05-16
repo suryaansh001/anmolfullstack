@@ -1,5 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const asyncHandler = require('../middleware/asyncHandler');
 const User = require('../models/User');
 const env = require('../config/env');
@@ -18,9 +19,9 @@ const loginSchema = z.object({
   password: z.string().min(8).max(100)
 });
 
-function generateToken(userId) {
+function generateToken(userId, email) {
   return jwt.sign(
-    { sub: userId, email: 'user@akshar.in' },
+    { sub: userId, email },
     env.JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -37,20 +38,24 @@ router.post(
       });
     }
 
-    const { name, email } = result.data;
+    const { name, email, password } = result.data;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
+    // Hash the password
+    const passwordHash = await bcrypt.hash(password, 12);
+
     const user = await User.create({
       name,
       email,
+      password: passwordHash,
       roles: ['writer']
     });
 
-    const token = generateToken(user._id.toString());
+    const token = generateToken(user._id.toString(), user.email);
 
     return res.status(201).json({
       data: {
@@ -77,14 +82,21 @@ router.post(
       });
     }
 
-    const { email } = result.data;
+    const { email, password } = result.data;
 
+    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = generateToken(user._id.toString());
+    // Verify password with bcrypt
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = generateToken(user._id.toString(), user.email);
 
     return res.json({
       data: {

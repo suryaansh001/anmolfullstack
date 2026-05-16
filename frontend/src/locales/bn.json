@@ -1,0 +1,20 @@
+{
+  "common": { "akshar": "অক্ষর" },
+  "nav": {
+    "dashboard": "ড্যাশবোর্ড",
+    "poetry": "কবিতা",
+    "stories": "গল্প",
+    "lyrics": "গানের কথা",
+    "editor": "সম্পাদক",
+    "discover": "আবিষ্কার করুন"
+  },
+  "auth": {
+    "login": "সাইন ইন করুন",
+    "signup": "সাইন আপ করুন",
+    "email": "ইমেল",
+    "password": "পাসওয়ার্ড",
+    "name": "পূর্ণ নাম"
+  },
+  "editor": { "title": "সম্পাদক" },
+  "errors": { "unauthorized": "অননুমোদিত। দয়া করে সাইন ইন করুন।" }
+}
